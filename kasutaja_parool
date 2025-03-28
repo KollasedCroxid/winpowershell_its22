@@ -1,0 +1,35 @@
+$csvPath = "C:\Users\Administrator\adkasutajad.csv"
+$outputCsv = "C:\Users\Administrator\kasutajad.csv"
+
+if (-Not (Test-Path $csvPath)) {
+    Write-Host "Sisendfaili ei leitud. Loon uue näidisfaili..." -ForegroundColor Yellow
+    @"
+FirstName,LastName,Department,Role,SamAccountName
+Karis,STEN,IT,Admin,ksten
+Kalvi,Kalle,Tiktok,Tiktok,kkalle
+"@ | Out-File -FilePath $csvPath -Encoding utf8
+}
+
+$users = Import-Csv -Path $csvPath
+
+if (-Not (Test-Path $outputCsv)) {
+    "Kasutajanimi,Parool" | Out-File -FilePath $outputCsv -Encoding utf8
+}
+
+foreach ($user in $users) {
+    # Genereerime turvalise parooli (12 tähemärki, tähed, numbrid ja sümbolid)
+    $password = -join ((1..12) | ForEach-Object { "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*"[(Get-Random -Maximum 62)] })
+
+    # Loome AD kasutaja
+    New-ADUser -GivenName $user.FirstName -Surname $user.LastName `
+        -SamAccountName $user.SamAccountName `
+        -UserPrincipalName "$($user.SamAccountName)@sv-kool.local" `
+        -Department $user.Department -Title $user.Role `
+        -AccountPassword (ConvertTo-SecureString $password -AsPlainText -Force) `
+        -Enabled $true
+
+    # Salvestame tulemuse CSV-faili
+    "$($user.SamAccountName),$password" | Out-File -FilePath $outputCsv -Append -Encoding utf8
+}
+
+Write-Host "Kasutajad loodud ja salvestatud faili $outputCsv" -ForegroundColor Green
