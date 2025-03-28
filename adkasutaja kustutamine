@@ -1,0 +1,29 @@
+if (!(Get-Module -ListAvailable -Name ActiveDirectory)) {
+    Write-Host "ActiveDirectory moodul puudub. Kontrolli AD DS rolli paigaldust!" -ForegroundColor Red
+    exit
+}
+
+Import-Module ActiveDirectory
+
+$csvPath = "C:\Users\Administrator\adkasutajad.csv"
+
+if (Test-Path $csvPath) {
+    $users = Import-Csv -Path $csvPath
+    foreach ($user in $users) {
+        $samAccountName = $user.SamAccountName
+        if (Get-ADUser -Filter {SamAccountName -eq $samAccountName}) {
+            Remove-ADUser -Identity $samAccountName -Confirm:$false
+            Write-Host "Kasutaja $samAccountName on kustutatud." -ForegroundColor Green
+        } else {
+            Write-Host "Kasutajat $samAccountName ei leitud." -ForegroundColor Yellow
+        }
+    }
+} else {
+    $userToDelete = Read-Host "Sisesta kasutaja SamAccountName, keda kustutada"
+    if (Get-ADUser -Filter {SamAccountName -eq $userToDelete}) {
+        Remove-ADUser -Identity $userToDelete -Confirm:$false
+        Write-Host "Kasutaja $userToDelete on kustutatud." -ForegroundColor Green
+    } else {
+        Write-Host "Kasutajat $userToDelete ei leitud." -ForegroundColor Yellow
+    }
+}
